@@ -1,0 +1,7 @@
+customer_id: orders.csv, customers.csv
+store/store_name: orders.csv, stores.csv, stocks.csv, staffs.csv
+category_id: products.csv, categories.csv
+staff_name: orders.csv, staffs.csv
+product_id: order_items.csv, products.csv, stocks.csv
+brand_id: brands.csv, products.csv
+

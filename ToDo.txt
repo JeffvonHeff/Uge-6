@@ -1,0 +1,18 @@
+Læringsmål
+1. Lære om ETL-processer – Få praktisk erfaring med at lave ETL i kode, og forstå
+hvordan man designer dem, fx hvordan man håndterer manglende data og sikrer
+ensartede dataformater.
+2. Dokumentere beslutninger – Skriv ned hvilke valg I træffer i ETL-processen, fx
+ændringer i datatyper eller strukturen af data før og efter.
+3. Kommunikere klart – Øv jer i at forklare ETL-processen til kollegaer og ledere, så de
+forstår datagrundlaget for analyser og beslutninger.
+
+
+
+
+
+
+
+1. Få styr på de 3 API datakilder
+2. Find ud af hvad der ligger i hver af dem
+3. Struktur på opgaven

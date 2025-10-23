@@ -1,0 +1,18 @@
+Extract
+- Involves data validation
+
+
+
+Transform
+- Series of rules or functions applied to the extraxted data in order to prepare for loading
+- Involves data cleansing
+- Data cleaning: identify and manage inaccurate records by removing duplicates, handling missing values, and detecting outliers.
+- Data enrichment: enhance existing data by adding additional information (e.g., metadata or external data).
+- Data formatting: convert data into a specific format suitable for efficient analysis, storage, and reporting.
+- Data filtering: select a subset of data based on specific criteria to focus on relevant information.
+- Data validation: ensure that the transformed data meets certain quality standards and is ready for analysis.
+
+Load
+- Loads the transformed data into the target database or data warehouse
+- Full Loading: transfer all data to the destination system (often used for initial loads).
+- Incremental Loading: load only new or updated data to keep up with ongoing updates.
