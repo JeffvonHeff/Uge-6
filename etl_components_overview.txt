@@ -1,0 +1,67 @@
+ETL Pipeline Component Overview
+===============================
+
+This project implements a small extract-transform-load (ETL) pipeline using four
+modules: ``Extract.py``, ``Transform.py``, ``Load.py``, and ``main.py``. The
+following sections summarize the responsibilities and behaviour of each module
+and how they work together when the pipeline is executed.
+
+Extract (``Extract.py``)
+------------------------
+* **Purpose:** Download the raw datasets from a hosted API and save them as CSV
+  files on disk.
+* **Key function:** ``extract_all(output_dir=".")`` iterates over predefined
+  API endpoints (orders, order items, and customers), downloads each dataset via
+  ``requests.get``, converts the JSON payload into a pandas ``DataFrame``, and
+  persists the result as a CSV file in the given directory.
+* **Output:** Returns a dictionary mapping each dataset name to its
+  corresponding ``DataFrame`` so the rest of the pipeline can use the in-memory
+  representations.
+
+Transform (``Transform.py``)
+----------------------------
+* **Purpose:** Clean and enrich the extracted ``DataFrame`` objects.
+* **Key function:** ``transform_dataframes(data)`` expects a dictionary like the
+  one returned by ``extract_all``. It normalizes date columns in the orders data
+  (``_prepare_orders`` helper), calculates line totals for each order item, and
+  aggregates those totals per order. The function then merges order totals with
+  their associated orders and customer details to produce an ``order_summary``
+  table.
+* **Output:** Returns a dictionary containing the cleaned ``orders``
+  ``DataFrame`` and the derived ``order_summary`` ``DataFrame``.
+
+Load (``Load.py``)
+------------------
+* **Purpose:** Persist the transformed tables to a PostgreSQL database.
+* **Key functions:**
+  * ``build_connection_from_env(prefix="POSTGRES")`` reads the database
+    connection settings (user, password, host, port, and database) from
+    environment variables and establishes a psycopg2 connection.
+  * ``load_dataframes(connection, tables)`` ensures that each destination table
+    matches the columns of its source ``DataFrame`` by recreating the table, and
+    then inserts every row into PostgreSQL.
+* **Output:** Populates PostgreSQL tables with the transformed data. Each table
+  is recreated during the load step to stay in sync with the DataFrame schema.
+
+Main entry point (``main.py``)
+-----------------------------
+* **Purpose:** Provide a simple ``run_pipeline`` function that orchestrates the
+  end-to-end ETL flow.
+* **Execution flow:**
+  1. Calls ``extract_all`` to retrieve the raw data.
+  2. Passes the results to ``transform_dataframes`` to perform the cleaning and
+     enrichment logic.
+  3. Attempts to create a PostgreSQL connection via
+     ``build_connection_from_env``. If the required environment variables are
+     missing, it logs a message and exits gracefully without running the load
+     step.
+  4. When a connection is available, calls ``load_dataframes`` and then closes
+     the connection in a ``finally`` block to ensure resources are released.
+
+Putting it all together
+-----------------------
+Running ``python main.py`` executes ``run_pipeline``, which sequentially
+performs extraction, transformation, and loading. The pipeline is resilient to a
+missing database configuration and will still run the extract and transform
+steps, making it easy to inspect the intermediate CSV files or the in-memory
+``DataFrame`` objects.
