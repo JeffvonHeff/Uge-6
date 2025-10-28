@@ -1,0 +1,41 @@
+Run PostgreSQL in Docker (simple setup)
+=======================================
+
+1. Pull the PostgreSQL image
+   --------------------------
+   ``docker pull postgres:16``
+
+2. Start a new container
+   ----------------------
+   Replace the placeholder values with your own credentials.
+
+   ````
+   docker run --name simple-postgres \
+     -e POSTGRES_USER=etl_user \
+     -e POSTGRES_PASSWORD=etl_password \
+     -e POSTGRES_DB=etl_db \
+     -p 5432:5432 \
+     -d postgres:16
+   ````
+
+3. Confirm the container is healthy
+   ---------------------------------
+   ``docker ps`` should list ``simple-postgres`` with the ``healthy`` status.
+
+4. Connect from the ETL project
+   -----------------------------
+   Export the matching environment variables before running ``python main.py``:
+
+   ````
+   export POSTGRES_USER=etl_user
+   export POSTGRES_PASSWORD=etl_password
+   export POSTGRES_HOST=127.0.0.1
+   export POSTGRES_PORT=5432
+   export POSTGRES_DATABASE=etl_db
+   ````
+
+5. Stop and remove the container (optional)
+   ----------------------------------------
+   ``docker stop simple-postgres``
+
+   ``docker rm simple-postgres``

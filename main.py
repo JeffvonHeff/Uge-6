@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from Extract import extract_all
-from Load import build_engine_from_env, load_dataframes
+from Load import build_connection_from_env, load_dataframes
 from Transform import transform_dataframes
 
 
@@ -13,7 +13,7 @@ def run_pipeline() -> None:
     transformed = transform_dataframes(extracted)
 
     try:
-        engine = build_engine_from_env()
+        connection = build_connection_from_env()
     except ValueError as error:
         print(
             "Skipping load step because the database configuration is incomplete.\n"
@@ -21,7 +21,10 @@ def run_pipeline() -> None:
         )
         return
 
-    load_dataframes(engine, transformed)
+    try:
+        load_dataframes(connection, transformed)
+    finally:
+        connection.close()
 
 
 if __name__ == "__main__":
