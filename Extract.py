@@ -35,17 +35,32 @@ def extract_all(output_dir: Path | str = ".") -> Dict[str, pd.DataFrame]:
 
     dataframes: Dict[str, pd.DataFrame] = {}
     for name, url in API_ENDPOINTS.items():
-        response = requests.get(url, timeout=30)
-        response.raise_for_status()
-
-        df = pd.DataFrame(response.json())
-        csv_path = output_path / f"{name}.csv"
-        df.to_csv(csv_path, index=False)
-        print(f"Extracted {name} data to {csv_path}")
-
-        dataframes[name] = df
+        dataframes[name] = _fetch_dataset(name, url, output_path)
 
     return dataframes
+
+
+def _fetch_dataset(name: str, url: str, output_path: Path) -> pd.DataFrame:
+    """Fetch a dataset from the API, falling back to any cached CSV."""
+
+    cache_path = output_path / f"{name}.csv"
+    try:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+    except requests.RequestException as error:
+        if cache_path.exists():
+            print(
+                f"Failed to download '{name}' ({error}); using cached file {cache_path}"
+            )
+            return pd.read_csv(cache_path)
+        raise RuntimeError(
+            f"Unable to download dataset '{name}' and no cache is available."
+        ) from error
+
+    df = pd.DataFrame(response.json())
+    df.to_csv(cache_path, index=False)
+    print(f"Extracted {name} data to {cache_path}")
+    return df
 
 
 __all__ = ["extract_all", "API_ENDPOINTS"]
