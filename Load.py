@@ -10,7 +10,7 @@ import pandas as pd
 import psycopg2
 from psycopg2 import sql
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT, connection as PGConnection
-from postgres_env import pos_POSTGRES_ENV_DEFAULTS
+from env_post import _POSTGRES_ENV_DEFAULTS
 
 _DTYPE_TO_SQL: Dict[str, str] = {
     "int64": "BIGINT",
@@ -20,7 +20,7 @@ _DTYPE_TO_SQL: Dict[str, str] = {
     "datetime64[ns]": "TIMESTAMP",
 }
 
-_POSTGRES_ENV_DEFAULTS = pos_POSTGRES_ENV_DEFAULTS
+_POSTGRES_ENV_DEFAULTS = _POSTGRES_ENV_DEFAULTS
 
 
 def set_postgres_env(
