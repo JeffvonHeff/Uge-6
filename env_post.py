@@ -1,3 +1,6 @@
+from typing import Dict
+
+
 _POSTGRES_ENV_DEFAULTS: Dict[str, str] = {
     "POSTGRES_USER": "etl_user",
     "POSTGRES_PASSWORD": "etl_password",
