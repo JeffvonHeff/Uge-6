@@ -1,4 +1,4 @@
-"""Transform utilities for the ETL pipeline."""
+"""Tiny transform helpers for the ETL demo."""
 
 from __future__ import annotations
 
@@ -7,59 +7,42 @@ from typing import Dict
 import pandas as pd
 
 
-def _prepare_orders(orders: pd.DataFrame) -> pd.DataFrame:
-    cleaned = orders.copy()
-    for column in ["order_date", "required_date", "shipped_date"]:
-        if column in cleaned.columns:
-            cleaned[column] = pd.to_datetime(
-                cleaned[column], errors="coerce", dayfirst=False
-            )
-    return cleaned
+def build_order_summary(data: Dict[str, pd.DataFrame]) -> pd.DataFrame:
+    """Create a friendly summary table ready for loading into PostgreSQL."""
 
-
-def transform_dataframes(data: Dict[str, pd.DataFrame]) -> Dict[str, pd.DataFrame]:
-    """Perform a minimal set of transformations on the extracted data.
-
-    Parameters
-    ----------
-    data:
-        Dictionary containing the raw DataFrames returned by
-        :func:`extract_all`.
-
-    Returns
-    -------
-    Dict[str, pd.DataFrame]
-        Dictionary containing the cleaned DataFrames. Currently the
-        resulting dictionary contains:
-        ``orders`` – cleaned orders data, and
-        ``order_summary`` – aggregated order totals with customer
-        information.
-    """
-
-    orders = _prepare_orders(data["orders"])
-    order_items = data["order_items"].copy()
+    orders = data["orders"].copy()
+    items = data["order_items"].copy()
     customers = data["customers"].copy()
 
-    order_items["line_total"] = (
-        order_items["quantity"].astype(float)
-        * order_items["list_price"].astype(float)
-        * (1 - order_items["discount"].astype(float))
-    )
+    # Convert string dates like "01/01/2016" into real datetime objects.
+    orders["order_date"] = pd.to_datetime(orders["order_date"], format="%d/%m/%Y")
 
-    order_totals = (
-        order_items.groupby("order_id", as_index=False)["line_total"]
-        .sum()
+    # Work out how much each order is worth.
+    items["line_total"] = (
+        items["quantity"].astype(float)
+        * items["list_price"].astype(float)
+        * (1 - items["discount"].astype(float))
+    )
+    totals = (
+        items.groupby("order_id", as_index=False)["line_total"].sum()
         .rename(columns={"line_total": "order_total"})
     )
 
-    order_summary = orders.merge(order_totals, on="order_id", how="left").merge(
-        customers, on="customer_id", how="left", suffixes=("", "_customer")
+    # Add the customer names to the orders table.
+    customers["customer_name"] = (
+        customers["first_name"].fillna("") + " " + customers["last_name"].fillna("")
+    ).str.strip()
+    customer_details = customers[["customer_id", "customer_name"]]
+
+    summary = (
+        orders.merge(totals, on="order_id", how="left")
+        .merge(customer_details, on="customer_id", how="left")
+        .fillna({"order_total": 0})
     )
 
-    return {
-        "orders": orders,
-        "order_summary": order_summary,
-    }
+    summary["order_total"] = summary["order_total"].astype(float)
+
+    return summary[["order_id", "order_date", "customer_id", "customer_name", "order_total"]]
 
 
-__all__ = ["transform_dataframes"]
+__all__ = ["build_order_summary"]

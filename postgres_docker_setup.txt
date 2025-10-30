@@ -1,16 +1,13 @@
-Run PostgreSQL in Docker (simple setup)
-=======================================
+How to spin up PostgreSQL with Docker (for beginners)
+=====================================================
 
-1. Pull the PostgreSQL image
-   --------------------------
-   ``docker pull postgres:16``
-
-2. Start a new container
-   ----------------------
-   Replace the placeholder values with your own credentials.
+1. Start the database container
+   ----------------------------
+   Run the command below in a terminal. It downloads the PostgreSQL image (if
+   needed) and starts a container that listens on port ``5432``.
 
    ````
-   docker run --name simple-postgres \
+   docker run --name tiny-etl-postgres \
      -e POSTGRES_USER=etl_user \
      -e POSTGRES_PASSWORD=etl_password \
      -e POSTGRES_DB=etl_db \
@@ -18,31 +15,31 @@ Run PostgreSQL in Docker (simple setup)
      -d postgres:16
    ````
 
-3. Confirm the container is healthy
-   ---------------------------------
-   ``docker ps`` should list ``simple-postgres`` with the ``healthy`` status.
-
-4. Connect from the ETL project
-   -----------------------------
-   Export the matching environment variables before running ``python main.py``:
+2. Tell the ETL script how to connect
+   ----------------------------------
+   Export the same settings so ``Load.create_connection`` can reach the
+   database. You only need to do this once per terminal session.
 
    ````
    export POSTGRES_USER=etl_user
    export POSTGRES_PASSWORD=etl_password
+   export POSTGRES_DATABASE=etl_db
    export POSTGRES_HOST=127.0.0.1
    export POSTGRES_PORT=5432
-   export POSTGRES_DATABASE=etl_db
    ````
 
-5. Stop and remove the container (optional)
+3. Run the pipeline
+   -----------------
+   ````
+   python main.py
+   ````
+
+   The script prints each step and lets you know how many rows were saved to the
+   ``order_summary`` table.
+
+4. Stop and remove the container (optional)
    ----------------------------------------
-   ``docker stop simple-postgres``
-
-   ``docker rm simple-postgres``
-
-   
-POSTGRES_USER=etl_user
-POSTGRES_PASSWORD=etl_password
-POSTGRES_HOST=127.0.0.1
-POSTGRES_PORT=5432
-POSTGRES_DATABASE=etl_db
+   ````
+   docker stop tiny-etl-postgres
+   docker rm tiny-etl-postgres
+   ````
