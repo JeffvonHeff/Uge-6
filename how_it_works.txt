@@ -1,63 +1,37 @@
-How the ETL project works (step by step)
-=======================================
+How the tiny ETL project works
+==============================
 
-1. Configure the PostgreSQL connection
-   -----------------------------------
-   The loader reads database settings from ``POSTGRES_*`` environment variables.
-   ``main.py`` calls ``Load.set_postgres_env`` so sensible defaults are applied
-   automatically when those variables are missing, which keeps the demo flow
-   simple. Override a value by exporting your own environment variable (or by
-   passing ``overwrite=True`` to ``set_postgres_env`` if you integrate the
-   helper elsewhere). ``Load.write_postgres_env`` can persist the active settings
-   to a ``.env`` file for reuse with Docker Compose or other tooling.
+1. Read the CSV files
+   -------------------
+   ``Extract.extract_data`` opens the three CSV files that ship with the project
+   (orders, order items, and customers). Nothing tricky happens here – pandas
+   simply reads the rows into DataFrames so we can play with them in memory.
 
-2. Run the pipeline entry point
-   ----------------------------
-   Execute ``python main.py`` (or ``python main.py run``) from the repository
-   root. The command-line parser also exposes inspection helpers:
+2. Build a friendly order summary
+   ------------------------------
+   ``Transform.build_order_summary`` makes the data easier to understand:
 
-   * ``python main.py tables`` lists tables and row counts.
-   * ``python main.py preview orders --limit 10`` prints a sample of rows as a
-     nicely formatted pandas table.
-   * ``python main.py overview`` combines both ideas and shows a preview for
-     every user table.
+   * Every order date string like ``01/01/2016`` is turned into a real date
+     object.
+   * Each ``order_items`` row gets a ``line_total`` value (quantity × price ×
+     discount).
+   * Totals are added up per order and combined with the matching customer
+     name.
 
-3. Extract the raw datasets
-   ------------------------
-   ``Extract.extract_all`` downloads the JSON payloads defined in
-   ``Extract.API_ENDPOINTS`` using ``requests``. Each payload is converted to a
-   pandas ``DataFrame`` and written to disk as ``<name>.csv``. If the API is
-   unreachable, the helper falls back to any previously cached CSV files so the
-   rest of the pipeline can still run offline.
+   The function returns one tidy table with the columns we care about most:
+   ``order_id``, ``order_date``, ``customer_id``, ``customer_name``, and
+   ``order_total``.
 
-4. Transform the DataFrames
-   ------------------------
-   ``Transform.transform_dataframes`` normalises date columns in the orders data
-   and calculates a ``line_total`` per order item. The function returns two
-   tables:
+3. Save the summary to PostgreSQL
+   -------------------------------
+   ``Load.create_connection`` opens a connection using the ``POSTGRES_*``
+   environment variables (defaults are provided for quick tests). Then
+   ``Load.load_order_summary`` drops the ``order_summary`` table if it already
+   exists, recreates it with a super simple schema, and inserts every row from
+   the summary DataFrame.
 
-   * ``orders`` - cleaned order data with parsed datetimes.
-   * ``order_summary`` - order totals joined with customer information.
-
-5. Load the transformed data
-   -------------------------
-   ``Load.build_connection_from_env`` opens a psycopg2 connection using the
-   environment variables above. If the target database does not yet exist, the
-   module creates it automatically via the ``postgres`` maintenance database.
-   ``Load.load_dataframes`` then:
-
-   * drops the destination table if it exists,
-   * recreates it with types inferred from the pandas dtypes,
-   * coerces pandas-specific nulls (``NaN`` or ``NaT``) to real SQL ``NULL``,
-   * bulk inserts every row with ``cursor.executemany``.
-
-   All SQL runs within a transaction so either every table loads successfully or
-   nothing changes.
-
-6. Review the results
-   ------------------
-   After the load step completes, ``main.py`` automatically prints a database
-   snapshot by reusing the inspection utilities from ``postgres_env.py``. The
-   output is rendered via pandas so the column widths align for easy scanning.
-   You can rerun the same overview, table listing, or previews at any time using
-   the command-line options described above.
+4. Run everything from ``main.py``
+   -------------------------------
+   ``main.run_pipeline`` calls the three steps above, prints progress messages,
+   and shows the first few rows of the summary so you can see what will be saved
+   in the database. Run ``python main.py`` and you are done.

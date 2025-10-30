@@ -1,76 +1,34 @@
 ETL Pipeline Component Overview
 ===============================
 
-This project implements a small extract-transform-load (ETL) pipeline using the
-modules ``Extract.py``, ``Transform.py``, ``Load.py``, ``postgres_env.py``, and
-``main.py``. The sections below summarise each module and highlight how the
-pipeline behaves today.
+The project now contains four tiny Python modules that keep the ETL story very
+simple.
 
 Extract (``Extract.py``)
 ------------------------
-* **Purpose:** Download the raw datasets from a hosted API and cache them as CSV
-  files on disk.
-* **Key function:** ``extract_all(output_dir=".")`` iterates over the predefined
-  API endpoints (orders, order items, and customers), downloads each dataset via
-  ``requests.get``, converts the JSON payload to a pandas ``DataFrame``, and
-  persists the result as ``<name>.csv``. If the HTTP request fails, the helper
-  automatically falls back to the cached CSV so the pipeline still works offline.
-* **Output:** Returns a dictionary mapping each dataset name to its in-memory
-  ``DataFrame`` representation for the subsequent steps.
+* **Purpose:** Read the CSV files that live in the repository.
+* **Key function:** ``extract_data`` loads ``orders.csv``, ``order_items.csv``,
+  and ``customers.csv`` into pandas DataFrames and returns them in a dictionary.
 
 Transform (``Transform.py``)
 ----------------------------
-* **Purpose:** Clean and enrich the extracted ``DataFrame`` objects.
-* **Key function:** ``transform_dataframes(data)`` expects the dictionary
-  returned by ``extract_all``. It normalises date columns in the orders data,
-  calculates a ``line_total`` for every order item, aggregates totals per order,
-  and merges the result with the corresponding customer information.
-* **Output:** Returns a dictionary containing the cleaned ``orders`` table and
-  the derived ``order_summary`` table.
+* **Purpose:** Build a single, human-friendly table from the raw pieces.
+* **Key function:** ``build_order_summary`` parses the order dates, calculates an
+  ``order_total`` per order, and adds a ``customer_name`` column so every row is
+  easy to understand.
 
 Load (``Load.py``)
 ------------------
-* **Purpose:** Persist the transformed tables to PostgreSQL without relying on
-  an ORM.
-* **Key functions:**
-  * ``set_postgres_env`` and ``write_postgres_env`` populate or persist sensible
-    ``POSTGRES_*`` settings so the rest of the code can connect consistently.
-  * ``build_connection_from_env`` reads the connection details, creates the
-    target database automatically if it does not exist yet, and returns a
-    psycopg2 connection.
-  * ``load_dataframes`` recreates each destination table from the schema implied
-    by the ``DataFrame`` and inserts all rows. It normalises pandas-specific
-    null values (``NaN``/``NaT``) to SQL ``NULL`` before executing the insert.
-  * ``check_connection`` makes it easy to verify that a connection is healthy
-    before attempting any writes.
-
-postgres_env (``postgres_env.py``)
-----------------------------------
-* **Purpose:** Offer lightweight inspection utilities for the database.
-* **Key helpers:** ``list_tables``, ``table_row_count``, ``table_preview``, and
-  ``print_database_overview`` provide quick insight into what the pipeline
-  loaded. They reuse the same environment-driven connection logic as the main
-  ETL flow.
+* **Purpose:** Save the summary table to PostgreSQL using very small SQL
+  statements.
+* **Key function:** ``load_order_summary`` drops and recreates the
+  ``order_summary`` table, then inserts each row from the summary DataFrame. The
+  helper relies on ``create_connection``, which reads simple ``POSTGRES_*``
+  environment variables (or uses defaults) to connect with psycopg2.
 
 Main entry point (``main.py``)
 -----------------------------
-* **Purpose:** Provide a command-line interface for running the ETL pipeline and
-  exploring the resulting database.
-* **Execution flow (``run_pipeline`` command):**
-  1. Applies default environment variables via ``set_postgres_env``.
-  2. Calls ``extract_all`` to retrieve (or reuse cached) raw data.
-  3. Passes the result to ``transform_dataframes`` for cleaning and enrichment.
-  4. Establishes a PostgreSQL connection, creating the database on the fly if
-     needed, and verifies the connection with ``check_connection``.
-  5. Delegates to ``load_dataframes`` to recreate and populate the tables.
-  6. Prints a snapshot of the database using the inspection utilities.
-* **Additional commands:** ``tables`` lists table counts, ``preview`` renders a
-  pandas-formatted slice of a table, and ``overview`` combines both ideas for
-  every table.
-
-Putting it all together
------------------------
-Running ``python main.py`` (or ``python main.py run``) executes the ETL pipeline
-end-to-end and concludes with a readable database summary. The other commands
-provide quick, scriptable ways to inspect what was loaded without leaving the
-terminal.
+* **Purpose:** Glue the three steps together.
+* **Execution flow:** ``run_pipeline`` extracts the CSV data, builds the summary
+  table, shows the first few rows, and finally loads the data into PostgreSQL.
+  Running ``python main.py`` performs the whole process end-to-end.
