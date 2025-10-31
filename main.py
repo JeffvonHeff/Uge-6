@@ -1,4 +1,4 @@
-"""A tiny ETL pipeline that keeps every step as simple as possible."""
+"""ETL pipeline that keeps every step as simple as possible."""
 
 from __future__ import annotations
 

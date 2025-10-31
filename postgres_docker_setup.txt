@@ -7,7 +7,7 @@ Sådan starter du PostgreSQL med Docker (for begyndere)
    mangler) og starter en container, der lytter på port ``5432``.
 
    ````
-   docker run --name tiny-etl-postgres \
+   docker run --name etl-postgres \
      -e POSTGRES_USER=etl_user \
      -e POSTGRES_PASSWORD=etl_password \
      -e POSTGRES_DB=etl_db \
@@ -40,6 +40,6 @@ Sådan starter du PostgreSQL med Docker (for begyndere)
 4. Stop og fjern containeren (valgfrit)
    -----------------------------------
    ````
-   docker stop tiny-etl-postgres
-   docker rm tiny-etl-postgres
+   docker stop etl-postgres
+   docker rm etl-postgres
    ````
