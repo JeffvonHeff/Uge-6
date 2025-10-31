@@ -1,34 +1,35 @@
-ETL Pipeline Component Overview
-===============================
+Oversigt over ETL-pipelinen
+==========================
 
-The project now contains four tiny Python modules that keep the ETL story very
-simple.
+Projektet indeholder fire små Python-moduler, der holder ETL-historien meget
+simpel.
 
 Extract (``Extract.py``)
 ------------------------
-* **Purpose:** Read the CSV files that live in the repository.
-* **Key function:** ``extract_data`` loads ``orders.csv``, ``order_items.csv``,
-  and ``customers.csv`` into pandas DataFrames and returns them in a dictionary.
+* **Formål:** Læse de CSV-filer, der ligger i repoet.
+* **Nøglerutine:** ``extract_data`` indlæser ``orders.csv``, ``order_items.csv``
+  og ``customers.csv`` i pandas-DataFrames og returnerer dem i en ordbog.
 
 Transform (``Transform.py``)
 ----------------------------
-* **Purpose:** Build a single, human-friendly table from the raw pieces.
-* **Key function:** ``build_order_summary`` parses the order dates, calculates an
-  ``order_total`` per order, and adds a ``customer_name`` column so every row is
-  easy to understand.
+* **Formål:** Bygge en enkelt, brugervenlig tabel ud fra de rå dele.
+* **Nøglerutine:** ``build_order_summary`` parser ordredatoer, beregner en
+  ``order_total`` pr. ordre og tilføjer en ``customer_name``-kolonne, så hver
+  række er let at forstå.
 
 Load (``Load.py``)
 ------------------
-* **Purpose:** Save the summary table to PostgreSQL using very small SQL
-  statements.
-* **Key function:** ``load_order_summary`` drops and recreates the
-  ``order_summary`` table, then inserts each row from the summary DataFrame. The
-  helper relies on ``create_connection``, which reads simple ``POSTGRES_*``
-  environment variables (or uses defaults) to connect with psycopg2.
+* **Formål:** Gemme oversigtstabellen i PostgreSQL med helt korte SQL-sætninger.
+* **Nøglerutine:** ``load_order_summary`` dropper og genskaber tabellen
+  ``order_summary`` og indsætter derefter hver række fra oversigts-DataFrame'en.
+  Hjælperen bygger på ``create_connection``, der læser simple
+  ``POSTGRES_*``-miljøvariabler (eller bruger standardværdier) for at forbinde
+  via psycopg2.
 
-Main entry point (``main.py``)
------------------------------
-* **Purpose:** Glue the three steps together.
-* **Execution flow:** ``run_pipeline`` extracts the CSV data, builds the summary
-  table, shows the first few rows, and finally loads the data into PostgreSQL.
-  Running ``python main.py`` performs the whole process end-to-end.
+Hovedindgangspunkt (``main.py``)
+--------------------------------
+* **Formål:** Lime de tre trin sammen.
+* **Kørselsforløb:** ``run_pipeline`` ekstraherer CSV-dataene, bygger
+  oversigtstabellen, viser de første rækker og indlæser til sidst dataene i
+  PostgreSQL. Når du kører ``python main.py``, gennemføres hele processen fra
+  ende til anden.
