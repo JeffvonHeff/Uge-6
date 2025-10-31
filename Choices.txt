@@ -1,0 +1,60 @@
+ETL Process Design Decisions
+============================
+
+This document summarizes the most important implementation choices in each step of the
+current ETL pipeline and highlights reasonable alternatives that could replace the
+existing approach depending on future requirements.
+
+Extract
+-------
+- **Current choice:** `Extract.extract_data` loads every CSV file from disk into a
+  pandas `DataFrame` dictionary, using a fixed mapping of table names to file paths and
+  a single optional `base_path` argument. All files are read eagerly with
+  `pandas.read_csv`, interpreting the string ``"NULL"`` as missing data, and the helper
+  prints the resolved path for traceability.
+- **What we could have done instead:**
+  - Introduce configuration-driven file discovery (e.g., environment variables or a
+    YAML/JSON manifest) to avoid hard-coding relative paths.
+  - Stream large files in chunks or use lazy iterators to reduce peak memory
+    consumption if the data volume grows.
+  - Replace raw CSV reads with API/database extraction logic, especially if upstream
+    systems expose REST endpoints or direct database access.
+  - Wrap the extraction in retry/monitoring logic or use orchestration tools (Airflow,
+    Prefect) when operating in less controlled environments.
+
+Transform
+---------
+- **Current choice:** `Transform.prepare_relational_tables` performs all cleaning and
+  relational alignment with in-memory pandas transformations. The function renames
+  columns, enforces numeric types, materializes surrogate keys for stores and staff, and
+  joins lookup values before returning plain `DataFrame` objects. `build_order_summary`
+  then aggregates order totals with vectorized pandas operations and merges customer
+  details for reporting.
+- **What we could have done instead:**
+  - Use a dedicated schema validation layer (e.g., pandera or pydantic dataframes) to
+    enforce constraints explicitly and generate clearer error messages.
+  - Express transformations with SQL against a staging database or via dbt if we prefer
+    database-native processing and dependency tracking.
+  - Split the monolithic transform function into smaller, testable steps or use a
+    declarative pipeline library (e.g., Dagster, Prefect tasks) to improve reuse and
+    observability.
+  - Cache intermediate tables or leverage Apache Arrow/Parquet formats when the same
+    derived datasets are reused across downstream jobs.
+
+Load
+----
+- **Current choice:** `Load.create_connection` gathers connection settings from
+  environment variables and opens a psycopg2 connection. `load_core_tables` truncates
+  existing relational tables, bulk-inserts rows with `execute_values`, and resets serial
+  sequences, while `load_order_summary` drops and recreates the reporting table before
+  inserting each row with `cursor.executemany` inside an explicit transaction block.
+- **What we could have done instead:**
+  - Delegate connection management to SQLAlchemy or another ORM/connection pooler to
+    handle retries, pooling, and different database backends more gracefully.
+  - Swap full table truncation for incremental or upsert-based loading strategies when
+    data volumes increase or historical data must be preserved.
+  - Replace manual SQL strings with migration/versioning tools (Alembic, Flyway) so
+    schema changes are tracked and reproducible.
+  - Use database-specific bulk loading utilities (e.g., PostgreSQL `COPY`, cloud data
+    warehouse loaders) for faster ingestion when datasets grow beyond the small demo
+    scale.
