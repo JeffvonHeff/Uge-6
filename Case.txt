@@ -1,4 +1,0 @@
-Hent data for 3 forskellige kilder(API), transformer data og samles i en database.
-Se om der er kategorier i datasættene som er relevante for virksolhedens forretningsanalys
-Centraliseret database
-Tilgå data gennem bla. python eller PowerBI

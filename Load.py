@@ -123,7 +123,9 @@ TABLE_COLUMNS: Dict[str, Sequence[str]] = {
         "store_id",
         "manager_id",
     ),
-    "stocks": ("store_id", "product_id", "quantity"),
+    "stocks": ("store_id", 
+               "product_id", 
+               "quantity"),
     "orders": (
         "order_id",
         "customer_id",
