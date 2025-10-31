@@ -1,18 +1,18 @@
 Extract
-- Involves data validation
+- Indeholder datavalidering
 
 
 
 Transform
-- Series of rules or functions applied to the extraxted data in order to prepare for loading
-- Involves data cleansing
-- Data cleaning: identify and manage inaccurate records by removing duplicates, handling missing values, and detecting outliers.
-- Data enrichment: enhance existing data by adding additional information (e.g., metadata or external data).
-- Data formatting: convert data into a specific format suitable for efficient analysis, storage, and reporting.
-- Data filtering: select a subset of data based on specific criteria to focus on relevant information.
-- Data validation: ensure that the transformed data meets certain quality standards and is ready for analysis.
+- En række regler eller funktioner anvendes på de ekstraherede data for at forberede dem til indlæsning
+- Omfatter dataklargøring
+- Datavask: identificer og håndter unøjagtige poster ved at fjerne dubletter, håndtere manglende værdier og opdage outliers.
+- Data-berigelse: udvid eksisterende data med ekstra information (f.eks. metadata eller eksterne data).
+- Dataformatering: konverter data til et specifikt format, der egner sig til analyse, lagring og rapportering.
+- Datafiltrering: vælg et udsnit af data baseret på specifikke kriterier for at fokusere på relevant information.
+- Datavalidering: sikre, at de transformerede data lever op til bestemte kvalitetskrav og er klar til analyse.
 
 Load
-- Loads the transformed data into the target database or data warehouse
-- Full Loading: transfer all data to the destination system (often used for initial loads).
-- Incremental Loading: load only new or updated data to keep up with ongoing updates.
+- Indlæser de transformerede data i mål-databasen eller datalageret
+- Fuldt load: overfør alle data til målsystemet (bruges ofte ved initielle load).
+- Inkrementelt load: indlæs kun nye eller opdaterede data for at følge med løbende ændringer.

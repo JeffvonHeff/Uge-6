@@ -1,37 +1,36 @@
-How the tiny ETL project works
-==============================
+Sådan fungerer det lille ETL-projekt
+===================================
 
-1. Read the CSV files
-   -------------------
-   ``Extract.extract_data`` opens the three CSV files that ship with the project
-   (orders, order items, and customers). Nothing tricky happens here – pandas
-   simply reads the rows into DataFrames so we can play with them in memory.
+1. Læs CSV-filerne
+   ---------------
+   ``Extract.extract_data`` åbner de tre CSV-filer, der følger med projektet
+   (orders, order_items og customers). Der sker intet kompliceret her – pandas
+   læser blot rækkerne ind i DataFrames, så vi kan arbejde med dem i hukommelsen.
 
-2. Build a friendly order summary
-   ------------------------------
-   ``Transform.build_order_summary`` makes the data easier to understand:
+2. Byg et overskueligt ordreoverblik
+   ---------------------------------
+   ``Transform.build_order_summary`` gør dataene lettere at forstå:
 
-   * Every order date string like ``01/01/2016`` is turned into a real date
-     object.
-   * Each ``order_items`` row gets a ``line_total`` value (quantity × price ×
-     discount).
-   * Totals are added up per order and combined with the matching customer
-     name.
+   * Hver ordre-dato som ``01/01/2016`` bliver konverteret til et rigtigt
+     datoobjekt.
+   * Hver ``order_items``-række får en ``line_total``-værdi (antal × pris ×
+     rabat).
+   * Totaler summeres per ordre og kombineres med det tilhørende kundenavn.
 
-   The function returns one tidy table with the columns we care about most:
-   ``order_id``, ``order_date``, ``customer_id``, ``customer_name``, and
-   ``order_total``.
+   Funktionen returnerer én ryddelig tabel med de kolonner, vi er mest
+   interesserede i: ``order_id``, ``order_date``, ``customer_id``,
+   ``customer_name`` og ``order_total``.
 
-3. Save the summary to PostgreSQL
-   -------------------------------
-   ``Load.create_connection`` opens a connection using the ``POSTGRES_*``
-   environment variables (defaults are provided for quick tests). Then
-   ``Load.load_order_summary`` drops the ``order_summary`` table if it already
-   exists, recreates it with a super simple schema, and inserts every row from
-   the summary DataFrame.
+3. Gem oversigten i PostgreSQL
+   ----------------------------
+   ``Load.create_connection`` åbner en forbindelse ved hjælp af
+   ``POSTGRES_*``-miljøvariablerne (standardværdier er sat op til hurtige tests).
+   Derefter dropper ``Load.load_order_summary`` tabellen ``order_summary``, hvis
+   den allerede findes, genskaber den med et helt simpelt schema og indsætter
+   hver række fra oversigts-DataFrame'en.
 
-4. Run everything from ``main.py``
-   -------------------------------
-   ``main.run_pipeline`` calls the three steps above, prints progress messages,
-   and shows the first few rows of the summary so you can see what will be saved
-   in the database. Run ``python main.py`` and you are done.
+4. Kør det hele fra ``main.py``
+   ----------------------------
+   ``main.run_pipeline`` kalder de tre trin ovenfor, udskriver statusbeskeder og
+   viser de første par rækker af oversigten, så du kan se, hvad der bliver gemt i
+   databasen. Kør ``python main.py`` – så er du færdig.

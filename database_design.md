@@ -1,9 +1,9 @@
-# Bike Shop Database Framework
-This document describes the MySQL schema defined in `schema.sql` for loading the
-Excel workbook `AllcsvData.xlsx` (and its CSV exports). The schema normalises
-the workbook into relational tables, enforcing the relationships outlined in
+# Ramme for cykelbutiks-database
+Dette dokument beskriver MySQL-skemaet defineret i `schema.sql` til indlæsning af
+Excel-arbejdsbogen `AllcsvData.xlsx` (og dens CSV-eksporter). Skemaet normaliserer
+arbejdsbogen til relationelle tabeller og håndhæver relationerne beskrevet i
 `RelationsInDataCSV.txt`.
-## Entity Relationship Overview
+## Overblik over entity-relations
 ```
 customers (1) ──< orders >── (1) stores
                        │
@@ -14,38 +14,38 @@ products (1) ── brands
 stores (1) ──< stocks >── (1) products
 staffs (self) ── managers
 ```
-Key relationships:
+Vigtige relationer:
 - `orders.customer_id` → `customers.customer_id`
 - `orders.store_id` → `stores.store_id`
 - `orders.staff_id` → `staffs.staff_id`
 - `order_items.product_id` → `products.product_id`
 - `products.brand_id` → `brands.brand_id`
 - `products.category_id` → `categories.category_id`
-- `stocks` links each `store_id` with its on-hand `product_id` quantity.
-- `staffs.manager_id` self-references `staffs.staff_id`.
-## Loading Strategy
-1. **Lookup tables** – load `brands.csv`, `categories.csv`, and `stores.csv`.
-   - Use the provided `store_name` values to populate `stores.store_name`. The
-     `store_id` surrogate key is generated automatically.
-2. **Core reference data** – load `customers.csv`, `products.csv`, and
+- `stocks` forbinder hvert `store_id` med den tilgængelige mængde `product_id`.
+- `staffs.manager_id` refererer til `staffs.staff_id`.
+## Indlæsningsstrategi
+1. **Opslagstabeller** – indlæs `brands.csv`, `categories.csv` og `stores.csv`.
+   - Brug de angivne `store_name`-værdier til at udfylde `stores.store_name`.
+     Surrogatnøglen `store_id` genereres automatisk.
+2. **Kerne-referencedata** – indlæs `customers.csv`, `products.csv` og
    `staffs.csv`.
-   - When loading staff members, translate the `store_name` column to the
-     corresponding `store_id` from `stores` and copy the `street` value into
-     `staffs.street`.
-   - Populate the optional `manager_id` values after all staff rows have been
-     inserted, using the mapping between manager names and generated IDs.
-3. **Inventory and transactional data** – load `stocks.csv`, `orders.csv`, and
+   - Oversæt kolonnen `store_name` til det tilsvarende `store_id` fra `stores`,
+     når medarbejdere indlæses, og kopier `street`-værdien til `staffs.street`.
+   - Udfyld de valgfrie `manager_id`-værdier, efter alle medarbejdere er
+     indsat, ved hjælp af mappingen mellem managernavne og genererede id'er.
+3. **Lager- og transaktionsdata** – indlæs `stocks.csv`, `orders.csv` og
    `order_items.csv`.
-   - Convert `orders.store` into `store_id` by joining on `stores.store_name`.
-   - Replace `orders.staff_name` with the matching `staff_id`.
-   - Parse all date columns (`order_date`, `required_date`, `shipped_date`) to
-     `DATE` values using the format `DD/MM/YYYY`.
-   - Load `order_items` after `orders` and `products` to satisfy foreign keys.
-4. **Validation** – enable foreign key checks (`SET FOREIGN_KEY_CHECKS = 1;`)
-   after bulk loading to verify referential integrity.
-## Useful Queries
+   - Konverter `orders.store` til `store_id` ved at joine på `stores.store_name`.
+   - Erstat `orders.staff_name` med det matchende `staff_id`.
+   - Parse alle datokolonner (`order_date`, `required_date`, `shipped_date`) til
+     `DATE`-værdier i formatet `DD/MM/YYYY`.
+   - Indlæs `order_items` efter `orders` og `products` for at overholde
+     fremmednøgler.
+4. **Validering** – aktiver fremmednøgletjek (`SET FOREIGN_KEY_CHECKS = 1;`)
+   efter bulkload for at verificere referentiel integritet.
+## Nyttige forespørgsler
 ```sql
--- Total revenue per store
+-- Samlet omsætning pr. butik
 SELECT s.store_name,
        SUM(oi.quantity * oi.list_price * (1 - oi.discount)) AS revenue
 FROM orders o
@@ -53,7 +53,7 @@ JOIN stores s ON s.store_id = o.store_id
 JOIN order_items oi ON oi.order_id = o.order_id
 GROUP BY s.store_name
 ORDER BY revenue DESC;
--- Inventory position per store
+-- Lagerstatus pr. butik
 SELECT s.store_name, p.product_name, st.quantity
 FROM stocks st
 JOIN stores s ON s.store_id = st.store_id

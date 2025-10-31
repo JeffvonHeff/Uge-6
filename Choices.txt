@@ -1,60 +1,61 @@
-ETL Process Design Decisions
-============================
+Designvalg for ETL-processen
+===========================
 
-This document summarizes the most important implementation choices in each step of the
-current ETL pipeline and highlights reasonable alternatives that could replace the
-existing approach depending on future requirements.
+Dette dokument opsummerer de vigtigste implementeringsvalg i hvert trin af den
+nuværende ETL-pipeline og fremhæver fornuftige alternativer, der kan erstatte den
+eksisterende tilgang, hvis fremtidige krav ændrer sig.
 
 Extract
 -------
-- **Current choice:** `Extract.extract_data` loads every CSV file from disk into a
-  pandas `DataFrame` dictionary, using a fixed mapping of table names to file paths and
-  a single optional `base_path` argument. All files are read eagerly with
-  `pandas.read_csv`, interpreting the string ``"NULL"`` as missing data, and the helper
-  prints the resolved path for traceability.
-- **What we could have done instead:**
-  - Introduce configuration-driven file discovery (e.g., environment variables or a
-    YAML/JSON manifest) to avoid hard-coding relative paths.
-  - Stream large files in chunks or use lazy iterators to reduce peak memory
-    consumption if the data volume grows.
-  - Replace raw CSV reads with API/database extraction logic, especially if upstream
-    systems expose REST endpoints or direct database access.
-  - Wrap the extraction in retry/monitoring logic or use orchestration tools (Airflow,
-    Prefect) when operating in less controlled environments.
+- **Nuværende valg:** `Extract.extract_data` indlæser hver CSV-fil fra disken i
+en pandas-ordbog med `DataFrame`-objekter ved hjælp af et fast mapping mellem
+tablenavne og filstier samt et enkelt valgfrit `base_path`-argument. Alle filer
+læses eager med `pandas.read_csv`, hvor strengen ``"NULL"`` fortolkes som
+manglende data, og hjælperen udskriver den fulde sti for sporbarhed.
+- **Det kunne vi have gjort i stedet:**
+  - Indføre konfigurationsstyret filopslag (f.eks. miljøvariabler eller et YAML-/
+    JSON-manifest) for at undgå hardkodede relative stier.
+  - Streame store filer i bidder eller bruge lazy-iteratorer for at reducere
+    peak-hukommelsesforbruget, hvis datamængden vokser.
+  - Erstatte rå CSV-indlæsning med API-/databaseudtræk, især hvis kildesystemerne
+    udstiller REST-endpoints eller direkte databaseadgang.
+  - Pakke extraction ind i retry-/overvågningslogik eller bruge orkestrerings-
+    værktøjer (Airflow, Prefect), når vi kører i mindre kontrollerede miljøer.
 
 Transform
 ---------
-- **Current choice:** `Transform.prepare_relational_tables` performs all cleaning and
-  relational alignment with in-memory pandas transformations. The function renames
-  columns, enforces numeric types, materializes surrogate keys for stores and staff, and
-  joins lookup values before returning plain `DataFrame` objects. `build_order_summary`
-  then aggregates order totals with vectorized pandas operations and merges customer
-  details for reporting.
-- **What we could have done instead:**
-  - Use a dedicated schema validation layer (e.g., pandera or pydantic dataframes) to
-    enforce constraints explicitly and generate clearer error messages.
-  - Express transformations with SQL against a staging database or via dbt if we prefer
-    database-native processing and dependency tracking.
-  - Split the monolithic transform function into smaller, testable steps or use a
-    declarative pipeline library (e.g., Dagster, Prefect tasks) to improve reuse and
-    observability.
-  - Cache intermediate tables or leverage Apache Arrow/Parquet formats when the same
-    derived datasets are reused across downstream jobs.
+- **Nuværende valg:** `Transform.prepare_relational_tables` udfører al rengøring
+og relationel justering med in-memory pandas-transformationer. Funktionen
+omdøber kolonner, håndhæver numeriske typer, opbygger surrogatnøgler til stores
+og staff og joiner opslagsværdier, før den returnerer almindelige
+`DataFrame`-objekter. `build_order_summary` aggregerer derefter ordretotaler med
+vektoriserede pandas-operationer og fletter kundeoplysninger ind til rapportering.
+- **Det kunne vi have gjort i stedet:**
+  - Bruge et dedikeret lag til skemavalidering (f.eks. pandera eller pydantic
+    dataframes) for at håndhæve constraints eksplicit og give tydeligere fejl.
+  - Udføre transformationerne med SQL i en staging-database eller via dbt, hvis vi
+    foretrækker database-native processer og afhængighedssporing.
+  - Opdele den monolitiske transform-funktion i mindre, testbare trin eller bruge
+    et deklarativt pipeline-bibliotek (f.eks. Dagster, Prefect tasks) for at øge
+    genbrugelighed og observabilitet.
+  - Cache mellemtabeller eller udnytte Apache Arrow/Parquet-formater, når de samme
+    afledte datasæt genbruges på tværs af downstream-jobs.
 
 Load
 ----
-- **Current choice:** `Load.create_connection` gathers connection settings from
-  environment variables and opens a psycopg2 connection. `load_core_tables` truncates
-  existing relational tables, bulk-inserts rows with `execute_values`, and resets serial
-  sequences, while `load_order_summary` drops and recreates the reporting table before
-  inserting each row with `cursor.executemany` inside an explicit transaction block.
-- **What we could have done instead:**
-  - Delegate connection management to SQLAlchemy or another ORM/connection pooler to
-    handle retries, pooling, and different database backends more gracefully.
-  - Swap full table truncation for incremental or upsert-based loading strategies when
-    data volumes increase or historical data must be preserved.
-  - Replace manual SQL strings with migration/versioning tools (Alembic, Flyway) so
-    schema changes are tracked and reproducible.
-  - Use database-specific bulk loading utilities (e.g., PostgreSQL `COPY`, cloud data
-    warehouse loaders) for faster ingestion when datasets grow beyond the small demo
-    scale.
+- **Nuværende valg:** `Load.create_connection` henter forbindelsesindstillinger
+fra miljøvariabler og åbner en psycopg2-forbindelse. `load_core_tables`
+trunkerer eksisterende relationelle tabeller, bulk-indlæser rækker med
+`execute_values` og nulstiller serielle sekvenser, mens `load_order_summary`
+dropper og genskaber rapporttabellen før indsættelse af hver række med
+`cursor.executemany` inde i en eksplicit transaktion.
+- **Det kunne vi have gjort i stedet:**
+  - Overlade forbindelseshåndtering til SQLAlchemy eller en anden ORM/pooler for
+    at håndtere retries, pooling og forskellige databaser mere elegant.
+  - Erstatte fuld truncering med inkrementelle eller upsert-baserede load-
+    strategier, når datamængden stiger, eller historiske data skal bevares.
+  - Skifte manuelle SQL-strenge ud med migrations-/versionsværktøjer (Alembic,
+    Flyway), så schemaændringer spores og kan reproduceres.
+  - Bruge databasespecifikke bulk-load-værktøjer (f.eks. PostgreSQL `COPY`,
+    cloud-datalager loaders) for hurtigere indlæsning, når datasæt vokser ud over
+    demo-størrelsen.
